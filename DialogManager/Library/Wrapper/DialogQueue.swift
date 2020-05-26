@@ -48,40 +48,45 @@ extension DialogQueue {
     /// 큐 입력
     ///
     public func addQueue(_ alert: DialogFactory, _ next: Bool = false) {
-        if let view = self.viewDictionary[alert.getId()] {
-            if var arr = view[alert.getPropertyType()] {
-                next ? arr.append(alert) : arr.insert(alert, at: 0)
-                self.viewDictionary[alert.getId()]?.updateValue(arr, forKey: alert.getPropertyType())
-            } else {
-                self.viewDictionary[alert.getId()]?.updateValue([alert], forKey: alert.getPropertyType())
-            }
-        } else {
+        guard let view = self.viewDictionary[alert.getId()] else {
             self.viewDictionary.updateValue([alert.getPropertyType() : [alert]], forKey: alert.getId())
+            return
         }
+        
+        guard var arr = view[alert.getPropertyType()] else {
+            self.viewDictionary[alert.getId()]?.updateValue([alert], forKey: alert.getPropertyType())
+            return
+        }
+        
+        next ? arr.append(alert) : arr.insert(alert, at: 0)
+        self.viewDictionary[alert.getId()]?.updateValue(arr, forKey: alert.getPropertyType())
     }
     
     ///
     /// 삭제 id를 통한 큐 내용 삭제
     ///
     public func removeDeleteKeyQueue(_ id: String?, _ deleteKey: String?) {
+        guard id != nil || deleteKey != nil else {
+            self.viewDictionary.removeAll()
+            return
+        }
+        
         if let id = id {
             guard let idDictionary = self.viewDictionary[id] else {
                 return
             }
             
-            if let deleteKey = deleteKey {
-                // 1
-                for (pKey, pValue) in idDictionary {
-                    self.viewDictionary[id]?.updateValue(pValue.filter {
-                        $0.getDeleteKey() != deleteKey
-                    }, forKey: pKey)
-                }
-            } else {
-                // 2
+            guard let deleteKey = deleteKey else {
                 self.viewDictionary[id] = nil
+                return
+            }
+            
+            for (pKey, pValue) in idDictionary {
+                self.viewDictionary[id]?.updateValue(pValue.filter {
+                    $0.getDeleteKey() != deleteKey
+                }, forKey: pKey)
             }
         } else if let deleteKey = deleteKey {
-            // 2
             for (idKey, idValue) in self.viewDictionary {
                 for (pKey, pValue) in idValue {
                     self.viewDictionary[idKey]?.updateValue(pValue.filter {
@@ -89,9 +94,6 @@ extension DialogQueue {
                     }, forKey: pKey)
                 }
             }
-        } else {
-            // 3
-            self.viewDictionary.removeAll()
         }
     }
     
